@@ -1,0 +1,14 @@
+image: ${app_image}
+appName: ${app_name}
+
+autoscaling:
+  minReplicas: ${min_replicas}
+  maxReplicas: ${max_replicas}
+
+gateway:
+  staticOpName: ${static_ip_name}
+
+httpRoute:
+  hostnames:
+  - ${app_hostname}
+
