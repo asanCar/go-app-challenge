@@ -1,27 +1,25 @@
-module "primary_app" {
-  source = "./modules/helm_app"
+# App deployment into primary cluster
+resource "helm_release" "primary_app" {
+  provider = helm.primary
+  name = var.app_name
+  namespace = var.app_namespace
+  create_namespace = true
+  chart = var.helm_chart_path
 
-  providers = {
-    kubernetes = kubernetes.primary
-    helm = helm.primary
-  }
-
-  app_name = var.app_name
-  app_namespace = var.app_namespace
-  helm_chart_path = var.helm_chart_path
-  helm_values_yaml = data.template_file.primary_values.rendered
+  values = [
+    data.template_file.primary_values.rendered
+  ]
 }
 
-module "secondary_app" {
-  source = "./modules/helm_app"
+# App deployment into secondary cluster
+resource "helm_release" "secondary_app" {
+  provider = helm.secondary
+  name = var.app_name
+  namespace = var.app_namespace
+  create_namespace = true
+  chart = var.helm_chart_path
 
-  providers = {
-    kubernetes = kubernetes.secondary
-    helm = helm.secondary
-  }
-
-  app_name = var.app_name
-  app_namespace = var.app_namespace
-  helm_chart_path = var.helm_chart_path
-  helm_values_yaml = data.template_file.secondary_values.rendered
+  values = [
+    data.template_file.secondary_values.rendered
+  ]
 }

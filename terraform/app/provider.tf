@@ -1,4 +1,5 @@
 terraform {
+  required_version = "~> 1.10"
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -26,16 +27,6 @@ provider "google" {
   default_labels = local.default_labels
 }
 
-provider "kubernetes" {
-  alias = "primary"
-
-  host = data.terraform_remote_state.base.outputs.primary_cluster_endpoint
-  token = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(
-    data.terraform_remote_state.base.outputs.primary_cluster_ca_certificate
-  )
-}
-
 provider "helm" {
   alias = "primary"
 
@@ -46,16 +37,6 @@ provider "helm" {
       data.terraform_remote_state.base.outputs.primary_cluster_ca_certificate
     )
   }
-}
-
-provider "kubernetes" {
-  alias = "secondary"
-
-  host = data.terraform_remote_state.base.outputs.secondary_cluster_endpoint
-  token = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(
-    data.terraform_remote_state.base.outputs.secondary_cluster_ca_certificate
-  )
 }
 
 provider "helm" {
