@@ -6,7 +6,7 @@ terraform {
       version = "~> 7.7"
     }
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
       version = "~> 2.38"
     }
     helm = {
@@ -22,8 +22,8 @@ terraform {
 }
 
 provider "google" {
-  project = data.terraform_remote_state.base.outputs.project_id
-  region  = data.terraform_remote_state.base.outputs.primary_region
+  project        = data.terraform_remote_state.base.outputs.project_id
+  region         = data.terraform_remote_state.base.outputs.primary_region
   default_labels = local.default_labels
 }
 
@@ -31,7 +31,7 @@ provider "helm" {
   alias = "primary"
 
   kubernetes = {
-    host = data.terraform_remote_state.base.outputs.primary_cluster_endpoint
+    host  = data.terraform_remote_state.base.outputs.primary_cluster_endpoint
     token = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(
       data.terraform_remote_state.base.outputs.primary_cluster_ca_certificate
@@ -43,7 +43,7 @@ provider "helm" {
   alias = "secondary"
 
   kubernetes = {
-    host = data.terraform_remote_state.base.outputs.secondary_cluster_endpoint
+    host  = data.terraform_remote_state.base.outputs.secondary_cluster_endpoint
     token = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(
       data.terraform_remote_state.base.outputs.secondary_cluster_ca_certificate

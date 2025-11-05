@@ -15,18 +15,18 @@ variable "secondary_region" {
 
 variable "environment" {
   description = "The environment all this resources will be deployed to (e.g. dev, int, prod)"
-  type = string
-  default = "dev"
+  type        = string
+  default     = "dev"
 }
 
 variable "prefix_name" {
   description = "A name to be used when naming resources"
-  type = string
-  default = "holded-challenge"
+  type        = string
+  default     = "holded-challenge"
 }
 
 variable "dns_domain" {
   description = "The DNS domain to be managed by the Cloud DNS zone"
-  type = string
-  default = "example.com"
+  type        = string
+  default     = "example.com"
 }

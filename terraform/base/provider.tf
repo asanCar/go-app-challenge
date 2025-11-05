@@ -6,7 +6,7 @@ terraform {
       version = "~> 7.7"
     }
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
       version = "~> 2.38"
     }
     helm = {
@@ -23,8 +23,8 @@ terraform {
 
 # Authenticate with:  gcloud auth application-default login
 provider "google" {
-  project = var.project_id
-  region  = var.primary_region
+  project        = var.project_id
+  region         = var.primary_region
   default_labels = local.default_labels
 }
 
@@ -32,10 +32,10 @@ provider "helm" {
   alias = "primary"
 
   kubernetes = {
-    host = module.primary_gke.cluster_endpoint
+    host  = module.primary_gke.cluster_endpoint
     token = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(
-    module.primary_gke.cluster_ca_certificate
+      module.primary_gke.cluster_ca_certificate
     )
   }
 }
@@ -44,10 +44,10 @@ provider "helm" {
   alias = "secondary"
 
   kubernetes = {
-    host = module.secondary_gke.cluster_endpoint
+    host  = module.secondary_gke.cluster_endpoint
     token = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(
-    module.secondary_gke.cluster_ca_certificate
+      module.secondary_gke.cluster_ca_certificate
     )
   }
 }

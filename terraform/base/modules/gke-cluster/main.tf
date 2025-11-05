@@ -7,7 +7,7 @@ resource "google_project_service" "gke_api" {
 }
 
 resource "google_container_cluster" "cluster" {
-  project = var.project_id
+  project  = var.project_id
   name     = var.cluster_name
   location = var.region
 
@@ -38,10 +38,10 @@ resource "google_container_cluster" "cluster" {
 }
 
 resource "google_container_node_pool" "main_pool" {
-  project = var.project_id
-  name       = "${var.cluster_name}-main-pool"
-  location   = var.region
-  cluster    = google_container_cluster.cluster.id
+  project  = var.project_id
+  name     = "${var.cluster_name}-main-pool"
+  location = var.region
+  cluster  = google_container_cluster.cluster.id
   autoscaling {
     min_node_count = var.min_node_count
     max_node_count = var.max_node_count
