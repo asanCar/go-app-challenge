@@ -32,7 +32,7 @@ provider "helm" {
   alias = "primary"
 
   kubernetes = {
-    host = module.primary_gke.primary_cluster_endpoint
+    host = module.primary_gke.cluster_endpoint
     token = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(
     module.primary_gke.cluster_ca_certificate
@@ -44,7 +44,7 @@ provider "helm" {
   alias = "secondary"
 
   kubernetes = {
-    host = module.secondary_gke.secondary_cluster_endpoint
+    host = module.secondary_gke.cluster_endpoint
     token = data.google_client_config.default.access_token
     cluster_ca_certificate = base64decode(
     module.secondary_gke.cluster_ca_certificate
