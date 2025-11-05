@@ -19,6 +19,10 @@ resource "google_container_cluster" "cluster" {
     services_secondary_range_name = var.services_cidr_range_name
   }
 
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
+  }
+
   # Default node_pool
   initial_node_count       = 1
   remove_default_node_pool = true
@@ -47,8 +51,6 @@ resource "google_container_node_pool" "main_pool" {
   node_config {
     machine_type = var.node_type
     # GCP permissions to be granted to nodes
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
+    service_account = var.node_service_account_email
   }
 }

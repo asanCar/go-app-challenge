@@ -50,3 +50,8 @@ variable "node_type" {
   description = "Machine type to be used in the webapps node pool"
   default = "e2-micro"
 }
+
+variable "node_service_account_email" {
+  description = "The email of the IAM Service Account for the GKE nodes"
+  type = string
+}
