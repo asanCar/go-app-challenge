@@ -23,6 +23,12 @@ resource "google_container_cluster" "cluster" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
+  private_cluster_config {
+    enable_private_endpoint = true
+    enable_private_nodes = true
+    master_ipv4_cidr_block = var.master_ipv4_cidr_block
+  }
+
   # Default node_pool
   initial_node_count       = 1
   remove_default_node_pool = true

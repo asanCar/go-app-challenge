@@ -1,3 +1,11 @@
+# Enable Artifact Registry API (to pull docker images)
+resource "google_project_service" "artifact_registry_api" {
+  project = var.project_id
+  service = "artifactregistry.googleapis.com"
+  disable_dependent_services = false
+  disable_on_destroy         = false
+}
+
 # Clusters configuration
 
 module "primary_gke" {
@@ -16,6 +24,7 @@ module "primary_gke" {
 
   pods_cidr_range_name     = local.pods_range_name
   services_cidr_range_name = local.services_range_name
+  master_ipv4_cidr_block = local.primary_master_cidr
 }
 
 module "secondary_gke" {
@@ -34,5 +43,6 @@ module "secondary_gke" {
 
   pods_cidr_range_name     = local.pods_range_name
   services_cidr_range_name = local.services_range_name
+  master_ipv4_cidr_block = local.secondary_master_cidr
 }
 

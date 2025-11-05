@@ -55,3 +55,8 @@ variable "node_service_account_email" {
   description = "The email of the IAM Service Account for the GKE nodes"
   type        = string
 }
+
+variable "master_ipv4_cidr_block" {
+  description = "The IP range in CIDR notation to use for the hosted master network"
+  type = string
+}
