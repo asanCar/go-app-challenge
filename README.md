@@ -14,6 +14,8 @@ With the selected approach (DNS Failover Routing Policy) it is expected a period
 
 Using a Fleet of clusters with Multi-cluster Gateways could be interesting to implement in the future if we need to provide service to customers across the globe, what could justify the costs of having multiple clusters running multiple instances of our workloads and using Global Load Balancers (more expensive). It could also solve the downtime issue mentioned related to the DNS resolution cache and propagation.
 
+In future iterations, we could also add a CDN in front of our Load Balancers in order to cache some of the application contents and with this reduce latency and traffic costs.
+
 ### Networking
 
 In order to have more control on ohw many IP are available to GKE nodes, Pods and services, I manually have configured the different subnet secondary ranges accordingly.
@@ -54,14 +56,93 @@ In future iterations we could implement these improvements
 
 Due to the lack of time to further implement this solution, there have been some implementation details or improvements I couldn't implement:
 
+- I just realized that with the current implementation, some things are missing to properly expose the application to Internet:
+  - A proxy-only subnet on each Region for each Load Balancer.
 - Expose the application through HTTPS using a self-signed certificate: in order to expose the application securely to the Internet we could deploy `cert-manager` in the GKE clusters in order to leverage the domain configuration from the `Gateway` resources to issue a certificate from Let's Encrypt.
 - In order to allow administrator/operations tasks in the GKE cluster, a jumpbox/bastion machine accesible only from a VPN should be created in a separate subnet in the same VPC in order to run Kubernetes commands against the GKE private endpoints.
 - **Custom metrics for HPA:** In the current MVP implementation, only CPU metric have been used to scale Pods. In a future iteration, we could configure Prometheus Exporters to properly retrieve custom metrics (e.g. the amount of busy go routines) and configure the Horizontal Pod Autoscaler to scale base on that metric.
 - More Firewall rules could be configured in order to enforce that only the expected traffic is allowed to access the different components within the VPC.
 - ArgoCD and ArgoRollouts could be configured and deployed on each cluster in order to manage it's own resources deployments using a GitOps approach and to allow canary deployments. This way we make sure the GKE private endpoints are reachable (we would need to make sure there are proper Firewall rules that allow ArgoCD to pull contents from the Git repositories).
   - Additional node pools could be configured into the GKE clusters in order to allow allocating more resources for Runners to run.
+  - Helm charts should be also updated to start using `Rollout` resources instead of `Deployments` to enable features like Canary deployments.
 
 ## 2. Application
 
 
 ## 3. Security
+
+Some of the best practices to take into consideration when implementing this kind of stack have been already explained before:
+
+- Apply Least Privilege principle: by default, GKe nodes have too much permissions to operate other GCP services. We need to create a new Service Account containing only the required permissions (in this case we identified the permissions to write metrics and logs into the GCP monitoring services and to pull Docker images from the Artifacts Registry).
+- Expose HTTPS traffic only: with this we make sure all traffic is encrypted on transit.
+- Private GKE node: with this option enabled we make sure the GKE nodes can only receive traffic from our VPC. This feature along with the proper Firewall rules, can enforce that only traffic coming from the Application Load Balancers can reach our our cluster applications.
+- Enable only private GKE endpoints: with this we make sure that the Kubernetes clusters can only be accessed from a private IP, so we prevent to expose any sensitive endpoint.
+  - In order to access this GKE endpoints a jumpbox/bastion machine accesible only from a VPN (enforced by Firewall rules) should be created in a separate subnet in the same VPC.
+- In the scenario where a Vault may be required (e.g. to store some DB credentials our app should access), I would suggest to use the native GCP Secret Manager and would enable the CSI driver in the GKE cluster config in order to have direct integration using the `Secret` resources.
+- Some of the Firewall rules that should be present:
+  - Ingress Rule to allow GCP services to properly operate our GKE clusters (e.g. the rule included int the Terraform code for health checks).
+  - Ingress Rule to allow traffic from the Application Load Balancers to GKE subnets.
+- Along with the Firewall rules, we should also implement `NetworkSecurityPolicies` to also secure the traffic within the cluster.
+  - We should have a default policy to deny all traffic, but making sure that main cluster functionalities (like internal DNS or the monitoring stack) keep working. An example:
+  
+  ```yaml
+  kind: NetworkPolicy
+  apiVersion: networking.k8s.io/v1
+  metadata:
+    name: default-deny
+  spec:
+    policyTypes:
+    - Ingress
+    - Egress
+    podSelector: {}
+    ingress:
+      - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+    egress:
+      - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+        ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+  ```
+
+  - Then should also provide a `NetworkSecurityPolicies` for each of the different application we have deployed in the cluster in order to allow the required Ingress/Egress traffic (e.g. allow ingress traffic only to the exposed port of the Go app Pod).
+- `PodSecurityPolicies` resources have been deprecated in Kubernetes. Those were used to enforce what kind of Pod definitions should the cluster API allow to create. For instance, you could use them to prevent any Pod with privilege permission (run as root) to be deployed.
+  - Nowadays Kubernetes allows to apply some predefined policies by adding labels to specific `Namespaces`. For instance, we could use the label `pod-security.kubernetes.io/enforce: restricted` which is the most restrictive policy available, which forbids any Pod to run as root or to use any Linux Capability (for instance the Go app doesn't need any to operate).
+  - In most cases, a 3rd party solution like Kyverno is implemented to reate more tailored policies, with custom rules to meet different scenarios.
+  - In our current implementation I would suggest to forbid any Pod in `my-app` Namespace to be deployed if:
+    - Tries to run as root or allows privilege escalation.
+    - Doesn't have `requirements` defined.
+    - Tries to mount a volume (our current definition doesn't need them).
+    - Drop all Linux capabilities.
+    - Enforce the images are from a trusted registry or even limit that the only image to be used is the one we created for the Go application.
+- Some of the previous implementations are required for a Zero Trust architecture, but in order to add additional layers of protection, we could implement a Service Mesh in order to make sure that all GKE internal traffic is also encrypted (with the suggested approach with `cert-manager` TLS termination happens in the Load Balancer), and to validate each Pod identity with mTLS (making sure that only trusted authenticated users can consume our services).
+- In order to configure a WAF with Cloud Armor, we should:
+  1. Create a new security policy with Terraform enabling most of the preconfigured WAF rules from GCP to prevent most common attacks like SQL Injection (`sqli-v33-stable`) or Cross-site Scripting (`xss-v3-stable`).
+  2. Create a `GCPBackendPolicy` in the GKE clusters to start using this security policy and to attach it to the Go app service. We should modify the Helm chart to include a proper template for this resource, but it should look like:
+
+  ```yaml
+  apiVersion: networking.gke.io/v1
+  kind: GCPBackendPolicy
+  metadata:
+    name: my-app-policy
+    namespace: my-app
+  spec:
+    default:
+      securityPolicy: my-app-security-policy # The name of the policy we created with Terraform
+    targetRef:
+      group: ""
+      kind: Service
+      name: my-app
+  ```
+
+- In order to enable audit logs we could add a `logging_config` section in our cluster Terraform code with the proper configuration to enable audit logs for the `APISERVER` components (auditing with that all calls to the GKE API).
