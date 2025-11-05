@@ -4,6 +4,8 @@
 
 ### Architecture
 
+![](Architecture.jpg)
+
 In order to implement the multi-region failover architecture, I have chosen to use an Active-Passive approach using a **DNS Failover Routing Policy** to balance traffic between a primary GKE in one region and a secondary GKE in another region.
 
 Due to the lack of context of what is the amount of traffic and from where in the globe it will come, I have decided to follow this approach because for an MVP is a cheaper approach rather than using an Active-Active approach (e.g. by using Multi-cluster Gateways with Global External HTTPS Load Balancers).
@@ -48,7 +50,7 @@ In future iterations we could implement these improvements
 - I kept Helm deployments in different resources blocks (instead of using `for_each` for sake of simplicity), because that way we have more flexibility to customize each deployment configuration separately.
 - I have added the `Gateway` resource as part of the app chart in order to simplify and provide flexibility to the configuration of the `hostname`.
 
-#### Incomplete tasks
+### Incomplete tasks
 
 Due to the lack of time to further implement this solution, there have been some implementation details or improvements I couldn't implement:
 
