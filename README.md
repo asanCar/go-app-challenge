@@ -38,11 +38,6 @@ In order to securely access the GKE cluster I have prevented public access to GK
 
 Additionally, GKE nodes will only have private IP addresses, what ensures that cluster applications should only be reachable from the same VPC or publicly exposed via a Load Balancer.
 
-In future iterations we could implement these improvements
-
-- Disable non-default RBAC bindings in a cluster that reference the system:unauthenticated and system:authenticated groups or the system:anonymous user, to prevent usage of default insecure groups.
-- set automountServiceAccountToken=false in the Pod specification if your Pods don't need to communicate with the API server.
-
 ### Additional notes
 
 - In order to run the Terraform code it is required to have a bucket created with the name `terraform-states`.
