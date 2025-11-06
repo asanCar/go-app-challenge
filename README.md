@@ -68,6 +68,39 @@ Due to the lack of time to further implement this solution, there have been some
 
 ## 2. Application
 
+In the current approach, a Terraform stack has been created in order to deploy all the application specific resources in GCP, including the application Helm chart. While this approach it's simple and allows to start deploying the application with just a simple CI/CD tool that could run Terraform commands, it would require some refactoring and bespoke scripts and complex logic in order to provide more complex features like Canary Deployments or prevent change drifts.
+
+In order to support more complex deployment patterns (like Canary or Blue/Green deployments), we could choose GitHub Actions as our CI tool to build and publish our Go Server Docker images (because it's easy to implement and start using it) and ArgoCD + ArgoRollouts for our CD tool (because they allow to implement a GitOps approach, which would prevent drift changes, and because these tools come with plenty of features like Canary deployments out-of-the-box).
+
+For security reasons and to simplify the credentials configuration required for the deployment of resources, we could deploy GitHub Runners and ArgoCD in a "cicd" GKE cluster (to make it easier to scale and parallelize jobs and to prevent any disruption to the application clusters).
+
+**Suggested pipeline to deploy the base infrastructure**
+
+![](cicd-base-infra.jpg)
+
+**Suggested pipeline to deploy the application**
+
+![](cicd-app.jpg)
+
+### Continuous Integration
+
+In order to make sure our Go application is secure or follow the best practices, we will need to run linting tools like CodeQL (provided by GitHub). Also before building the Docker image we should run some unit tests or even integration tests to make sure all work as expected. We could also use tools like Trivy to list the Dockerfiles.
+
+To deploy infrastructure linting and security scan tools will be also required to ensure the configuration pushed follow the best practices. We could also include some Compliance tests using tools like `terraform-compliance` to check our code against custom policies to ensure it follows the company's regulations.
+
+### Continuous Deployment
+
+ArgoCD will be the responsible to make sure our environments match the desired state by redeploying the resources if an unexpected change is detected. We will need a separated repository where our CI pipelines will push all the deployment manifests for our applications.
+
+In order to start using ArgoRollouts we may need to replace our `Deployment` resources from the Helm charts with `Rollout` (although if we want to distribute our Helm charts for other teams to deploy them without ArgoRollouts, we could keep both approaches and select what templates should be used using a flag in the values.yaml file).
+
+Since we are dividing the deployment of the application code (Helm + ArcgoCD) from its infrastructure (Terraform), we will need to refactor the Terraform code in order to expose some information that will be required to properly configure the Helm values.yaml file, using Terraform outputs.
+
+In order to define a proper Automatic Rollback Strategy we should configure our `Rollout` with `AnalysisTemplate` (or `ClusterAnalysisTemplate`) to check the "canary" instances and proceed with the deployment only if everything is OK, or abort the deployment if something is wrong. We could configure the `AnalysisTemplate` to deploy a `Job` that will run some smoke test we could have baked in a Docker image as part of the application's CI pipeline.
+
+If for any reason we need to rollback to a previous version of our deployment we could simply leverage that we are using a GitOps approach and manually revert to a previous commit simply using Git commands.
+
+In order to propagate the application across environments I decided to add manual approvals because I may need more information about how is the development and testing lifecycle of this application in order to properly replace this manual gates with automated ones (e.g. based on the result of some battery of tests).
 
 ## 3. Security
 
