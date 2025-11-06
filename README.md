@@ -86,7 +86,7 @@ For security reasons and to simplify the credentials configuration required for 
 
 In order to make sure our Go application is secure or follow the best practices, we will need to run linting tools like CodeQL (provided by GitHub). Also before building the Docker image we should run some unit tests or even integration tests to make sure all work as expected. We could also use tools like Trivy to list the Dockerfiles.
 
-To deploy infrastructure linting and security scan tools will be also required to ensure the configuration pushed follow the best practices. We could also include some Compliance tests using tools like `terraform-compliance` to check our code against custom policies to ensure it follows the company's regulations.
+To deploy the infrastructure, linting and security scan tools will be also required to ensure the configuration pushed follow the best practices. We could also include some Compliance tests using tools like `terraform-compliance` to check our code against custom policies to ensure it follows the company's regulations.
 
 ### Continuous Deployment
 
